@@ -59,6 +59,9 @@
     h2 { margin: 0; font-size: 16px; letter-spacing: 0; }
     .step { font: 10px var(--mono); color: #89948d; }
     label { display: block; margin-bottom: 8px; color: #46544c; font-size: 12px; font-weight: 700; }
+    .location-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 17px; }
+    .location-fields label { margin-bottom: 6px; }
+    .location-fields select { height: 40px; padding: 0 9px; font-size: 11px; }
     .phone-field { position: relative; display: flex; align-items: center; margin-bottom: 21px; }
     .phone-field span { position: absolute; left: 12px; color: var(--muted); font: 12px var(--mono); }
     input[type="tel"], input[type="text"], select { width: 100%; height: 42px; border: 1px solid #ccd6cc; border-radius: 3px; background: #fff; color: var(--ink); outline: none; }
@@ -169,15 +172,19 @@
       <section class="workbench" aria-label="OTP flow simulator">
         <div class="config">
           <div class="section-heading"><h2>Test configuration</h2><span class="step">01 / INPUT</span></div>
+          <div class="location-fields">
+            <div><label for="country">Country</label><select id="country"></select></div>
+            <div><label for="region">Region / state</label><select id="region" required></select></div>
+          </div>
           <label for="phone">Test phone number</label>
-          <div class="phone-field"><span>+1</span><input id="phone" type="tel" inputmode="numeric" autocomplete="off" placeholder="555 010 2040" maxlength="18"></div>
+          <div class="phone-field"><span id="callingCode">+91</span><input id="phone" type="tel" inputmode="numeric" autocomplete="off" placeholder="98765 43210" maxlength="18"></div>
           <p class="helper">Displayed in results only. It is never sent or saved.</p>
 
           <div class="targets-head"><label>Mock targets</label><div class="target-actions"><button class="text-button" id="openImport" type="button">Import URLs</button><button class="text-button" id="toggleAll" type="button">Select all</button></div></div>
           <div class="site-list" id="siteList"></div>
           <button class="add-site" id="addSite" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>Add mock target</button>
           <button class="run-button" id="startRun" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m8 5 11 7-11 7z" fill="currentColor" stroke="none"/></svg>Run simulated test</button>
-          <div class="notice"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3 4 6v5c0 5 3.4 8.5 8 10 4.6-1.5 8-5 8-10V6l-8-3Z"/><path d="m9 12 2 2 4-4"/></svg><span>Local simulation only. Target names and mock behavior stay in this browser. No website is contacted and no SMS is sent.</span></div>
+          <div class="notice"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3 4 6v5c0 5 3.4 8.5 8 10 4.6-1.5 8-5 8-10V6l-8-3Z"/><path d="m9 12 2 2 4-4"/></svg><span>Mock API only: country, region, and scenario types are sent. The phone number and target URLs stay in this browser. No site is contacted and no SMS is sent.</span></div>
         </div>
 
         <div class="results">
@@ -193,7 +200,7 @@
           </div>
         </div>
       </section>
-      <footer><span>SIGNAL BENCH / LOCAL QA SIMULATOR</span><span>NO EXTERNAL REQUESTS · NO PERSISTED PHONE DATA</span></footer>
+      <footer><span>SIGNAL BENCH / MOCK QA SIMULATOR</span><span>NO LIVE SMS · NO PERSISTED PHONE DATA</span></footer>
     </main>
   </div>
   <dialog id="importDialog" aria-labelledby="importTitle">
@@ -215,11 +222,33 @@
         { name: 'Site B · Account portal', behavior: 'success', selected: true },
         { name: 'Site C · Checkout', behavior: 'failure', selected: true }
       ];
+      const locations = [
+        { code: 'IN', name: 'India', dial: '+91', regions: ['Andaman and Nicobar Islands', 'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chandigarh', 'Chhattisgarh', 'Dadra and Nagar Haveli and Daman and Diu', 'Delhi', 'Goa', 'Gujarat', 'Haryana', 'Himachal Pradesh', 'Jammu and Kashmir', 'Jharkhand', 'Karnataka', 'Kerala', 'Ladakh', 'Lakshadweep', 'Madhya Pradesh', 'Maharashtra', 'Manipur', 'Meghalaya', 'Mizoram', 'Nagaland', 'Odisha', 'Puducherry', 'Punjab', 'Rajasthan', 'Sikkim', 'Tamil Nadu', 'Telangana', 'Tripura', 'Uttar Pradesh', 'Uttarakhand', 'West Bengal'] },
+        { code: 'US', name: 'United States', dial: '+1', regions: ['Alabama', 'Alaska', 'Arizona', 'Arkansas', 'California', 'Colorado', 'Connecticut', 'Delaware', 'District of Columbia', 'Florida', 'Georgia', 'Hawaii', 'Idaho', 'Illinois', 'Indiana', 'Iowa', 'Kansas', 'Kentucky', 'Louisiana', 'Maine', 'Maryland', 'Massachusetts', 'Michigan', 'Minnesota', 'Mississippi', 'Missouri', 'Montana', 'Nebraska', 'Nevada', 'New Hampshire', 'New Jersey', 'New Mexico', 'New York', 'North Carolina', 'North Dakota', 'Ohio', 'Oklahoma', 'Oregon', 'Pennsylvania', 'Rhode Island', 'South Carolina', 'South Dakota', 'Tennessee', 'Texas', 'Utah', 'Vermont', 'Virginia', 'Washington', 'West Virginia', 'Wisconsin', 'Wyoming'] },
+        { code: 'CA', name: 'Canada', dial: '+1', regions: ['Alberta', 'British Columbia', 'Manitoba', 'New Brunswick', 'Newfoundland and Labrador', 'Northwest Territories', 'Nova Scotia', 'Nunavut', 'Ontario', 'Prince Edward Island', 'Quebec', 'Saskatchewan', 'Yukon'] },
+        { code: 'GB', name: 'United Kingdom', dial: '+44', regions: ['England', 'Northern Ireland', 'Scotland', 'Wales'] },
+        { code: 'AU', name: 'Australia', dial: '+61', regions: ['Australian Capital Territory', 'New South Wales', 'Northern Territory', 'Queensland', 'South Australia', 'Tasmania', 'Victoria', 'Western Australia'] },
+        { code: 'NZ', name: 'New Zealand', dial: '+64', regions: ['Auckland', 'Bay of Plenty', 'Canterbury', 'Gisborne', 'Hawke’s Bay', 'Manawatu-Whanganui', 'Marlborough', 'Nelson', 'Northland', 'Otago', 'Southland', 'Taranaki', 'Tasman', 'Waikato', 'Wellington', 'West Coast'] },
+        { code: 'AE', name: 'United Arab Emirates', dial: '+971', regions: ['Abu Dhabi', 'Ajman', 'Dubai', 'Fujairah', 'Ras Al Khaimah', 'Sharjah', 'Umm Al Quwain'] }
+      ];
       const siteList = document.querySelector('#siteList');
       const resultsContent = document.querySelector('#resultsContent');
       const startButton = document.querySelector('#startRun');
+      const countrySelect = document.querySelector('#country');
+      const regionSelect = document.querySelector('#region');
       let runs = 0;
       let sites = loadSites();
+
+      countrySelect.innerHTML = locations.map(location => `<option value="${location.code}">${location.name} (${location.dial})</option>`).join('');
+
+      function updateRegions() {
+        const location = locations.find(item => item.code === countrySelect.value) || locations[0];
+        document.querySelector('#callingCode').textContent = location.dial;
+        regionSelect.innerHTML = `<option value="">Choose a region</option>${location.regions.map(region => `<option value="${escapeHtml(region)}">${escapeHtml(region)}</option>`).join('')}`;
+      }
+
+      countrySelect.addEventListener('change', updateRegions);
+      updateRegions();
 
       function loadSites() {
         try {
@@ -341,7 +370,7 @@
         return `<div class="result-card ${isSuccess ? '' : 'fail'}" style="animation-delay:${index * 65}ms"><div class="result-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">${icon}</svg></div><div><div class="result-name">${escapeHtml(site.name || 'Unnamed mock target')}</div><div class="result-detail">${status}</div></div><div class="result-time">${delay} ms</div></div>`;
       }
 
-      async function runSimulation(selected) {
+      async function runSimulation(selected, country, region) {
         if (location.protocol === 'file:') {
           await new Promise(resolve => window.setTimeout(resolve, 450));
           return selected.map(site => ({
@@ -354,7 +383,7 @@
         const response = await fetch('/api/simulate', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ targets: selected.map(site => ({ behavior: site.behavior })) })
+          body: JSON.stringify({ country, region, targets: selected.map(site => ({ behavior: site.behavior })) })
         });
         const payload = await response.json();
         if (!response.ok) throw new Error(payload.error || 'The mock API request failed.');
@@ -366,19 +395,22 @@
 
       startButton.addEventListener('click', async () => {
         const phone = document.querySelector('#phone').value.trim();
+        const selectedLocation = locations.find(item => item.code === countrySelect.value);
+        const region = regionSelect.value;
         const selected = sites.filter(site => site.selected);
         if (!/^\+?[\d ()-]{7,18}$/.test(phone)) { showToast('Enter a test number to label this run.'); document.querySelector('#phone').focus(); return; }
+        if (!selectedLocation || !region) { showToast('Choose a country and region first.'); regionSelect.focus(); return; }
         if (!selected.length) { showToast('Select at least one mock target.'); return; }
         runs += 1;
         document.querySelector('#runCount').innerHTML = `RUNS THIS SESSION&nbsp; ${String(runs).padStart(2, '0')}`;
         startButton.disabled = true;
         startButton.innerHTML = '<span>Simulating…</span>';
         try {
-          const results = await runSimulation(selected);
+          const results = await runSimulation(selected, selectedLocation.code, region);
           const successful = results.filter(site => site.status === 'accepted').length;
           const failed = selected.length - successful;
           document.querySelector('#resultSummary').innerHTML = `<strong>${successful}/${selected.length}</strong><span>${failed ? `${failed} issue${failed === 1 ? '' : 's'}` : 'all simulated'}</span>`;
-          resultsContent.innerHTML = `<div class="results-list">${results.map(resultMarkup).join('')}<div class="otp-preview"><span>Mock provider preview · not sent</span><code>••••••</code></div></div><div class="results-meta">LABEL: ${escapeHtml(phone)} &nbsp;·&nbsp; RUN ${String(runs).padStart(2, '0')}</div>`;
+          resultsContent.innerHTML = `<div class="results-list">${results.map(resultMarkup).join('')}<div class="otp-preview"><span>Mock provider preview · not sent</span><code>••••••</code></div></div><div class="results-meta">${escapeHtml(selectedLocation.name.toUpperCase())} / ${escapeHtml(region.toUpperCase())} &nbsp;·&nbsp; LABEL: ${escapeHtml(selectedLocation.dial)} ${escapeHtml(phone)} &nbsp;·&nbsp; RUN ${String(runs).padStart(2, '0')}</div>`;
         } catch (error) {
           showToast(error.message || 'The mock API is unavailable.');
         } finally {

@@ -16,7 +16,12 @@ module.exports = (request, response) => {
   }
 
   const targets = body && body.targets;
+  const country = body && body.country;
+  const region = body && body.region;
   const allowedBehaviors = new Set(['success', 'failure', 'slow']);
+  if (typeof country !== 'string' || !/^[A-Z]{2}$/.test(country) || typeof region !== 'string' || region.length < 1 || region.length > 80) {
+    return response.status(400).json({ error: 'Choose a valid country and region.' });
+  }
   if (!Array.isArray(targets) || targets.length < 1 || targets.length > 25) {
     return response.status(400).json({ error: 'Provide between 1 and 25 mock targets.' });
   }
@@ -37,6 +42,7 @@ module.exports = (request, response) => {
   return response.status(200).json({
     requestId: randomUUID(),
     mode: 'mock',
+    context: { country, region },
     results,
     event: {
       type: 'otp.simulation.completed',
