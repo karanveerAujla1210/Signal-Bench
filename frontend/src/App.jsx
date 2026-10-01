@@ -63,6 +63,8 @@ export default function App() {
   const [phone, setPhone] = useState('');
   const [running, setRunning] = useState(false);
   const [results, setResults] = useState(null);
+  const [rawPayload, setRawPayload] = useState(null);
+  const [showRaw, setShowRaw] = useState(false);
   const [runs, setRuns] = useState(0);
   const [toast, setToast] = useState('');
   const [showImport, setShowImport] = useState(false);
@@ -154,6 +156,8 @@ export default function App() {
       const payload = await res.json();
       if (!res.ok) throw new Error(payload.error || 'API request failed.');
       setRuns(r => r + 1);
+      setRawPayload(payload);
+      setShowRaw(false);
       setResults({ items: selected.map((s, i) => ({ ...s, ...payload.results[i] })), loc, region, phone: phone.trim() });
     } catch (e) {
       showToast(e.message || 'API unavailable.');
@@ -282,13 +286,21 @@ export default function App() {
             <div className="results">
               <div className="section-heading">
                 <h2>Test results</h2>
-                {results
-                  ? <div className="result-summary"><strong>{results.items.filter(r => r.status === 'accepted').length}/{results.items.length}</strong><span>{results.items.filter(r => r.status !== 'accepted').length ? `${results.items.filter(r => r.status !== 'accepted').length} issue(s)` : 'all simulated'}</span></div>
-                  : <div className="result-summary"><strong>—</strong><span>awaiting run</span></div>
-                }
+                <div style={{display:'flex',alignItems:'center',gap:'10px'}}>
+                  {results
+                    ? <div className="result-summary"><strong>{results.items.filter(r => r.status === 'accepted').length}/{results.items.length}</strong><span>{results.items.filter(r => r.status !== 'accepted').length ? `${results.items.filter(r => r.status !== 'accepted').length} issue(s)` : 'all simulated'}</span></div>
+                    : <div className="result-summary"><strong>—</strong><span>awaiting run</span></div>
+                  }
+                  {rawPayload && <button className="text-button" onClick={() => setShowRaw(v => !v)}>{showRaw ? 'Visual' : 'Raw JSON'}</button>}
+                </div>
               </div>
 
-              {results ? (
+              {results && showRaw && rawPayload ? (
+                <div style={{position:'relative'}}>
+                  <pre style={{margin:0,padding:'14px',background:'#0f1c15',color:'#c7f071',font:'12px/1.7 var(--mono)',borderRadius:'3px',overflowX:'auto',whiteSpace:'pre-wrap',wordBreak:'break-all'}}>{JSON.stringify(rawPayload, null, 4)}</pre>
+                  <button onClick={() => { navigator.clipboard.writeText(JSON.stringify(rawPayload, null, 4)); showToast('Copied to clipboard'); }} style={{position:'absolute',top:'8px',right:'8px',padding:'3px 9px',border:'1px solid #3a5c3a',borderRadius:'3px',background:'#1a2e1f',color:'#c7f071',fontSize:'10px',fontFamily:'var(--mono)',cursor:'pointer'}}>Copy</button>
+                </div>
+              ) : results ? (
                 <div>
                   <div className="results-list">
                     {results.items.map((item, i) => (
@@ -309,7 +321,7 @@ export default function App() {
                   </div>
                   <div className="results-meta">{results.loc.name.toUpperCase()} / {results.region.toUpperCase()} · LABEL: {results.loc.dial} {results.phone} · RUN {String(runs).padStart(2, '0')}</div>
                 </div>
-              ) : (
+              ) : !showRaw ? (
                 <div className="empty-state">
                   <div>
                     <div className="empty-graphic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 7h6M9 11h6M9 15h2"/></svg></div>
