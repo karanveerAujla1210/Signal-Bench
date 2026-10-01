@@ -396,4 +396,8 @@ app.post('/api/trigger', (req, res) => {
 });
 
 const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => console.log(`Backend running on http://localhost:${PORT} with ${PREDEFINED_URLS.length} predefined URLs`));
+if (require.main === module) {
+  app.listen(PORT, () => console.log(`Backend running on http://localhost:${PORT} with ${PREDEFINED_URLS.length} predefined URLs`));
+}
+
+module.exports = app;
