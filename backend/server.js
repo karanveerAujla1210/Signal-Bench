@@ -318,6 +318,23 @@ app.get('/api/urls', (_req, res) => {
   res.json({ urls: PREDEFINED_URLS });
 });
 
+function mockOtp() {
+  return String(Math.floor(100000 + Math.random() * 900000));
+}
+
+function simulateSite(url, phone) {
+  const roll = Math.random();
+  const responseMs = 120 + Math.floor(Math.random() * 600);
+  // ~75% sites trigger successfully, ~15% reject, ~10% timeout
+  if (roll < 0.75) {
+    return { url, phone, triggered: true, stage: 'otp_sent', otp: mockOtp(), responseMs, reason: 'OTP dispatched to number' };
+  } else if (roll < 0.90) {
+    return { url, phone, triggered: false, stage: 'login_rejected', otp: null, responseMs, reason: 'Login page did not accept the number' };
+  } else {
+    return { url, phone, triggered: false, stage: 'timeout', otp: null, responseMs: 3000 + Math.floor(Math.random() * 500), reason: 'Site did not respond in time' };
+  }
+}
+
 app.post('/api/simulate', (req, res) => {
   const { targets, country, region } = req.body || {};
 
@@ -346,6 +363,35 @@ app.post('/api/simulate', (req, res) => {
     context: { country, region },
     results,
     event: { type: 'otp.simulation.completed', status: 'simulated', sent: false }
+  });
+});
+
+app.post('/api/trigger', (req, res) => {
+  const { phone, country, region, urls } = req.body || {};
+
+  if (typeof phone !== 'string' || !/^\+?[\d ()-]{7,18}$/.test(phone.trim())) {
+    return res.status(400).json({ error: 'Provide a valid phone number.' });
+  }
+  if (typeof country !== 'string' || !/^[A-Z]{2}$/.test(country)) {
+    return res.status(400).json({ error: 'Provide a valid country code.' });
+  }
+  if (typeof region !== 'string' || region.length < 1) {
+    return res.status(400).json({ error: 'Provide a region.' });
+  }
+
+  const targetUrls = Array.isArray(urls) && urls.length > 0 ? urls : PREDEFINED_URLS;
+
+  const results = targetUrls.map(url => simulateSite(url, phone.trim()));
+  const triggered = results.filter(r => r.triggered).length;
+
+  res.json({
+    requestId: randomUUID(),
+    mode: 'mock',
+    phone: phone.trim(),
+    context: { country, region },
+    summary: { total: results.length, triggered, notTriggered: results.length - triggered },
+    results,
+    event: { type: 'otp.trigger.completed', status: 'simulated', sent: false }
   });
 });
 
